@@ -93,8 +93,8 @@ int main(int argc, char* argv[])
   scanf("%d", &num_of_inode);
   printf("\r\n");
 
-  num_of_group = BLOCK_GROUP_OF_INODE(num_of_inode, INODE_PER_GROUP);
-  entry = ENTRY_INODE_TABLE(num_of_inode, INODE_PER_GROUP);
+  num_of_group = BLOCK_GROUP_OF_INODE(num_of_inode, INODES_PER_GROUP);
+  entry = ENTRY_INODE_TABLE(num_of_inode, INODES_PER_GROUP);
 
   printf("%-30s : %d\r\n", "i-node num", num_of_inode);
   printf("%-30s : %d\r\n", "Block group number", num_of_group);
