@@ -20,12 +20,11 @@ int get_superblock_from_fs(int fd, fs_superblock* superblk)
   return read(fd, superblk, SIZE_OF_SUPERBLOCK);
 }
 
-vector<grp_des>& get_grp_des_from_fs(int fd, block_type type)
+int get_grp_des_from_fs(int fd, block_type type, const fs_superblock& super, vector<grp_des> &grps)
 {
   _byte* fs_buf = 0;
   int fs_offset = 0, grp_offset = 0;
   size_t blk_size = (size_t)type;
-  vector<grp_des> grps;
   grp_des grp;
   
   switch(type)
@@ -46,8 +45,8 @@ vector<grp_des>& get_grp_des_from_fs(int fd, block_type type)
     grp_offset += SIZE_OF_GROUP_DESCRIPTOR;
   }
 
- Free_END:
+ FREE_END:
   delete[] fs_buf;
  END:
-  return grps;  
+  return 0;  
 }

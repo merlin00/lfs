@@ -17,9 +17,11 @@ int select_menu()
   printf("%s\r\n", "=======================================");
   printf("%s\r\n", "0. Exit");
   printf("%s\r\n", "1. Calucation on block group #");
-  printf("%s\r\n", "2. Print super block");
-  printf("%s\r\n", "3. Print group descriptor info");
-  printf("%s\r\n", "4. Print i-node info");
+  printf("%s\r\n", "2. Load superblock file");
+  printf("%s\r\n", "3. Load group descriptor file");
+  printf("%s\r\n", "4. Print super block");
+  printf("%s\r\n", "5. Print group descriptor info");
+  printf("%s\r\n", "6. Print i-node info");
   printf("%s\r\n", "=======================================");
 
   printf("%s", "? > ");
@@ -58,24 +60,24 @@ void calcuate_block_group()
   printf("\r\n");
 }
 
-void print_superblock(fs_superblock* blk)
+void print_superblock(const fs_superblock& blk)
 {
-  printf("%-22s : %10s \r\n", "Last mounted on", blk->last_mounted);
-  printf("%-22s : %10u \r\n", "Inode count", blk->inode_cnt);
-  printf("%-22s : %10u \r\n", "Block count", blk->blk_cnt);	
-  printf("%-22s : %10u \r\n", "Res block count", blk->res_blk_cnt);	
-  printf("%-22s : %10u \r\n", "Free block count", blk->free_blk_cnt);
-  printf("%-22s : %10u \r\n", "Free inode count", blk->free_inode_cnt);
-  printf("%-22s : %10u \r\n", "First data node block", blk->first_data_blk);
-  printf("%-22s : %10u \r\n", "Log block size", blk->log_blk_size);	
-  printf("%-22s : %10u \r\n", "Log frag size", blk->log_frag_size);
-  printf("%-22s : %10u \r\n", "Block per group", blk->blk_per_grp);	
-  printf("%-22s : %10u \r\n", "Frag per group", blk->frag_per_grp);	
-  printf("%-22s : %10u \r\n", "Inode per group", blk->inode_per_grp);
-  printf("%-22s : %10u \r\n", "Mount count", blk->mount_cnt);	
-  printf("%-22s : %10d \r\n", "Max mount count", (short)blk->max_mount_cnt);	
-  printf("%-22s : %6s%4X \r\n", "Magic", "0x", blk->magic);
-  printf("%-22s : %10d \r\n", "Block group #", (short)blk->blk_grp_num);	
+  printf("%-22s : %10s \r\n", "Last mounted on", blk.last_mounted);
+  printf("%-22s : %10u \r\n", "Inode count", blk.inode_cnt);
+  printf("%-22s : %10u \r\n", "Block count", blk.blk_cnt);	
+  printf("%-22s : %10u \r\n", "Res block count", blk.res_blk_cnt);	
+  printf("%-22s : %10u \r\n", "Free block count", blk.free_blk_cnt);
+  printf("%-22s : %10u \r\n", "Free inode count", blk.free_inode_cnt);
+  printf("%-22s : %10u \r\n", "First data node block", blk.first_data_blk);
+  printf("%-22s : %10u \r\n", "Log block size", blk.log_blk_size);	
+  printf("%-22s : %10u \r\n", "Log frag size", blk.log_frag_size);
+  printf("%-22s : %10u \r\n", "Block per group", blk.blk_per_grp);	
+  printf("%-22s : %10u \r\n", "Frag per group", blk.frag_per_grp);	
+  printf("%-22s : %10u \r\n", "Inode per group", blk.inode_per_grp);
+  printf("%-22s : %10u \r\n", "Mount count", blk.mount_cnt);	
+  printf("%-22s : %10d \r\n", "Max mount count", (short)blk.max_mount_cnt);	
+  printf("%-22s : %6s%4X \r\n", "Magic", "0x", blk.magic);
+  printf("%-22s : %10d \r\n", "Block group #", (short)blk.blk_grp_num);	
   printf("\r\n");
 }
 
@@ -97,7 +99,7 @@ int open_file_from_input(char* sz_title)
     printf("Worng filename!!!\r\n");
     return -1;
   }
-  printf("%s ... OK\r\n\r\n", "File opened");
+  printf("%s ... OK\r\n", "File opened");
 
   return fd;
 }
@@ -107,22 +109,24 @@ inline void close_file_opened(int fd)
   close(fd);
 }
 
-void superblock()
+void load_superblock(fs_superblock& super)
 {
-  fs_superblock super;
-  int fd = open_file_from_input("Superblock");
+  int fd = open_file_from_input("Load superblock");
 
   if(fd < 0) return;
 
   memset(&super, 0, sizeof(fs_superblock));
-  get_superblock_from_fs(fd, &super);
+  if(get_superblock_from_fs(fd, &super) < 0)
+    printf("%s ... Failed\r\n", "Load superblock");
+  else
+    printf("%s ... Ok\r\n", "Load superblock");
 
-  print_superblock(&super);
+  printf("\r\n");
 
   close_file_opened(fd);  
 }
 
-void print_grp_des(vector<grp_des> grps)
+void print_grp_des(const vector<grp_des>& grps)
 {
   size_t size = grps.size();
 
@@ -144,14 +148,13 @@ void print_grp_des(vector<grp_des> grps)
   }
 }
 
-void group_descriptors()
+void load_grp_des(const fs_superblock& super, vector<grp_des>& grps)
 {
+  int cnt = 0;
   int fd = open_file_from_input("Group descriptor");
-  vector<grp_des> grps;
   
-  grps = get_grp_des_from_fs(fd, _4K);
+  cnt = get_grp_des_from_fs(fd, _4K, super, grps);
   printf("%s : %d\r\n", "Totoal group descriptors", grps.size());
-  print_grp_des(grps);
 
   close_file_opened(fd);  
 }
@@ -159,6 +162,10 @@ void group_descriptors()
 int main(int argc, char* argv[])
 {
   int sel = 5;
+  fs_superblock super;
+  vector<grp_des> grps;
+
+  memset(&super, 0, sizeof(fs_superblock));
 
   do
     {
@@ -166,8 +173,10 @@ int main(int argc, char* argv[])
       switch(sel)
 	{
 	case 1: calcuate_block_group(); break;
-	case 2: superblock(); break;
-	case 3: group_descriptors(); break;
+	case 2: load_superblock(super); break;
+	case 3: load_grp_des(super, grps); break;
+	case 4: print_superblock(super); break;
+	case 5: print_grp_des(grps); break;
 	default:  break;
 	}
     }while(sel);

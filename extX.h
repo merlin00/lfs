@@ -97,8 +97,8 @@ typedef struct _fs_superblock {
 }fs_superblock;
 
 /* Group descriptor */
-
 #define SIZE_OF_GROUP_DESCRIPTOR 32 /* 32 bytes */
+
 typedef struct _group_descriptor {
   _dword blk_bitmap;		/* Block bitmap */
   _dword inode_bitmap;		/* Inode bitmap */
@@ -140,6 +140,9 @@ typedef struct _i_node {
   (inode - 1) % inodes_per_group
 
 int get_superblock_from_fs(int fd, fs_superblock* superblk);
-std::vector<grp_des>& get_grp_des_from_fs(int fd, block_type type);
+int get_grp_des_from_fs(int fd, 
+			block_type type, 
+			const fs_superblock& super, 
+			std::vector<grp_des>& grps);
 
 #endif
