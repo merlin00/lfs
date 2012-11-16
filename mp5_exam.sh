@@ -3,5 +3,6 @@
 # Creator : Kideok Kwon
 # Date : 2012.11.05
 
-echo hello world
+make clean
+make all
 ./extx

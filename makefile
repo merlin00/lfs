@@ -1,4 +1,4 @@
-srcs = extX.cpp	
+srcs = extX.cpp mp5.cpp
 objs = ${srcs:.cpp=.o}
 target = extx
 
