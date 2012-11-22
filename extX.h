@@ -1,6 +1,10 @@
 #ifndef _EXTX_H_
 #define _EXTX_H_
 
+#define _1K_BLOCK 1024
+#define _2K_BLOCK 2048
+#define _4K_BLOCK 4096
+
 #define SIZE_OF_BLOCK 4096
 #define MAGIC_OFFSET_OF_SUPERBLOCK 0x38
 
@@ -10,24 +14,12 @@ typedef unsigned short _word;
 typedef unsigned int _dword;
 typedef unsigned char _byte;
 
-typedef enum _block_type{
-  _1K = 1024,
-  _2K = 2046,
-  _4K = 4096
-}block_type;
-
 typedef struct _extX_info {
   unsigned int blks_of_group;	 // Blocks of group
   unsigned int inodes_per_group; // i-nodes per group
   unsigned short size_of_blk;	 // Size of block
   unsigned short size_of_bitmap; // Bitmap size 
 }extX_info;
-
-// File blcok descriptor
-typedef struct _block_des {
-  size_t size;
-  char *block;
-}block_des;
 
 // Disk image structure
 #define HDR_SIZE_OF_DIRENT 8
@@ -45,7 +37,7 @@ typedef struct _dirent_disk_img{
 #define SIZE_OF_SUPERBLOCK 264
 
 /* Linux superblock */
-typedef struct _fs_superblock {
+typedef struct _fs_super_block {
   _dword inode_cnt;	        /* Inode count */
   _dword blk_cnt;		/* block count */
   _dword res_blk_cnt;		/* res block count */
@@ -54,9 +46,9 @@ typedef struct _fs_superblock {
   _dword first_data_blk;	/* First data node block */
   _dword log_blk_size;		/* Log block size */
   _dword log_frag_size;		/* Log frag size */
-  _dword blk_per_grp;		/* Block per group */
-  _dword frag_per_grp;		/* Frag per group */
-  _dword inode_per_grp;		/* Inode per group */
+  _dword blks_per_group;	/* Block per group */
+  _dword frags_per_group;	/* Frag per group */
+  _dword inode_per_group;	/* Inode per group */
   _dword mtime;			/* mtime */
   _dword wtime;			/* wtime */
   _word mount_cnt;		/* Mount count */ 
@@ -73,7 +65,7 @@ typedef struct _fs_superblock {
   _word def_res_gid;		/* def_res gid */
   _dword first_ino;		/* First ino */
   _word inode_size;		/* Inode size */
-  _word blk_grp_num;		/* Block group number */
+  _word blk_group_num;		/* Block group number */
   _dword compat;		/* Feature compat */
   _dword incompat;		/* Feature incompat */
   _dword read_only_compat;	/* feature read only compat */
@@ -94,7 +86,7 @@ typedef struct _fs_superblock {
   _word padding3;		/* Padding3 */
   _dword default_mount_opt;	/* Default mount option */
   _dword first_meta_bg;		/* First meta block group */
-}fs_superblock;
+}fs_super_block;
 
 /* Group descriptor */
 #define SIZE_OF_GROUP_DESCRIPTOR 32 /* 32 bytes */
@@ -110,7 +102,7 @@ typedef struct _group_descriptor {
   _dword padding2;
   _dword padding3;
   _dword padding4;
-}grp_des;
+}group_desc;
 
 /* Inode */
 typedef struct _i_node {
@@ -139,10 +131,10 @@ typedef struct _i_node {
 #define ENTRY_INODE_TABLE(inode, inodes_per_group) \
   (inode - 1) % inodes_per_group
 
-int get_superblock_from_fs(int fd, fs_superblock* superblk);
-int get_grp_des_from_fs(int fd, 
-			block_type type, 
-			const fs_superblock& super, 
-			std::vector<grp_des>& grps);
+int get_super_block_from(int fd, fs_super_block* fs_super);
+int get_group_desc_from(int fd, 
+			size_t blk_size, 
+			const fs_super_block& fs_super, 
+			std::vector<group_desc>& groups);
 
 #endif
