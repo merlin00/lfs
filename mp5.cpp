@@ -9,6 +9,7 @@
 #include <math.h>
 
 #include "extX.h"
+#include "ext2_analysis.hpp"
 
 using namespace std;
 
@@ -29,7 +30,6 @@ int select_menu()
 
   printf("%s", "? > ");
   scanf("%d", &num);
-  // printf("\r\n");
   
   return num;
 }
@@ -82,8 +82,6 @@ void print_super_block(const fs_super_block& blk)
   printf("%-22s : %10u \r\n", "Free block count", blk.free_blk_cnt);
   printf("%-22s : %10u \r\n", "Free inode count", blk.free_inode_cnt);
   printf("%-22s : %10u \r\n", "First data node block", blk.first_data_blk);
-  // Block size = 1K * 2 ^ log_blk_size
-  // printf("%-22s : %10u \r\n", "Block size", (_dword)(_1K_BLOCK * pow(2, blk.log_blk_size)));	
   printf("%-22s : %10u \r\n", "Block size", GET_BLOCK_SIZE(blk.log_blk_size));	
   printf("%-22s : %10u \r\n", "Fragment size", (_dword)(_1K_BLOCK * pow(2,blk.log_frag_size)));
   printf("%-22s : %10u \r\n", "Blocks per group", blk.blks_per_group);	
@@ -127,6 +125,7 @@ inline void close_file_opened(int fd)
   close(fd);
 }
 
+/*
 void load_super_block(int fd, fs_super_block& super)
 {
   if(fd < 0) return;
@@ -136,7 +135,7 @@ void load_super_block(int fd, fs_super_block& super)
     printf("%s ... Failed\r\n", "Load superblock");
   else
     printf("%s ... Ok\r\n", "Load superblock");
-}
+    }*/
 
 // Print group descriptors
 void print_title_of_group_desc() 
@@ -202,6 +201,7 @@ void print_bitmap(const _byte* bitmap, size_t size)
     }
 }
 
+/*
 void print_inode_bitmap(int fd,
 			const fs_super_block& super,
 			const group_desc& gd)
@@ -225,7 +225,7 @@ void print_inode_bitmap(int fd,
   print_bitmap(buf, ret);
 
   delete[] buf;
-}
+  }*/
 
 
 void print_group_desc(const vector<group_desc>& groups)
@@ -234,6 +234,7 @@ void print_group_desc(const vector<group_desc>& groups)
   print_element_of_group_desc(groups);
 }
 
+/*
 void load_group_desc(int fd, 
 		     const fs_super_block& fs_super, 
 		     vector<group_desc>& groups)
@@ -246,17 +247,12 @@ void load_group_desc(int fd,
   cnt = read_group_desc(fd, blk_size, fs_super, groups);
   printf("%s : %d\r\n", "Totoal group descriptors", groups.size());
 
-}
+  }*/
 
 int main(int argc, char* argv[])
 {
   int sel = 5;
-  int fd = -1;
-
-  fs_super_block fs_super;
-  vector<group_desc> group_descs;
-
-  memset(&fs_super, 0, sizeof(fs_super_block));
+  ExtAnalysis ext("/dev/mapper/vg_kkd-lv_root");
 
   do
     {
@@ -264,40 +260,37 @@ int main(int argc, char* argv[])
       switch(sel)
 	{
 	case 1: 
-	  fd = open_file_from_input("Open file or device"); 
-	  load_super_block(fd, fs_super);
-	  load_group_desc(fd,fs_super, group_descs);
+	  //fd = open_file_from_input("Open file or device"); 
+	  //load_super_block(fd, fs_super);
+	  //load_group_desc(fd,fs_super, group_descs);
 	  break;
 	case 2: calcuate_block_group(); break;
-	case 3: print_super_block(fs_super); break;
-	case 4: print_group_desc(group_descs); break;
+	case 3: 
+	  print_super_block(ext.get_super_block());
+	  break;
+	case 4: 
+	  print_group_desc(ext.get_group_desc()); 
+	  break;
 	case 5:
 	  {
-	    int num = input_group_num();
-	    group_desc gd = group_descs[num];
-	    print_inode_bitmap(fd, fs_super, gd);	    
-	    break;
+	    // int num = input_group_num();
+	    // group_desc gd = group_descs[num];
+	    // print_inode_bitmap(fd, fs_super, gd);	    
+	    // break;
 	  }
 	case 6:
 	  {
-	    vector<i_node> inodes;
-	    vector<_dword> nums;
+	    vector<ExtAnalysis::inode_info> inodes;
 	    int num = input_group_num();
-	    group_desc gd = group_descs[num];
-	    read_vaild_inodes(fd, fs_super, gd, inodes);
-	    //get_inode_num(fd, fs_super, gd, 4096, nums);
-	    // get_inodes_from(gd, 
-	    // 		    fs_super.inode_per_group,
-	    // 		    fd,
-	    // 		    inodes);
-	    print_element_of_inode(inodes);
+
+	    ext.get_inodes(num, inodes);
+	    //	    printf("%d\r\n", inodes.size());
+	    // print_element_of_inode(inodes);
 	  }
 
 	default:  break;
 	}
     }while(sel);
-
-  if(fd > 0) close_file_opened(fd);
 
   return 0;
 }

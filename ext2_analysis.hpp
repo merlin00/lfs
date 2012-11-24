@@ -1,23 +1,26 @@
 #ifndef _EXT2_ANALYSIS_H_
 #define _EXT2_ANALYSIS_H_
 
-#include <vector>
 #include "extX.h"
 
 class ExtAnalysis
 {
- private:
+private:
   int m_fd;
   ext_super_block m_super_block;
   std::vector<group_desc> m_group_descs;
 
   int _read_super_block();
+
   int _read_group_descs(const ext_super_block& super);
 
- public:
+public:
+  typedef std::pair<_dword, i_node> inode_info;
 
+
+public:
   ExtAnalysis();
-  ~ExtAnalysis() {}
+  ~ExtAnalysis() { close();}
   ExtAnalysis(const char* filename);
 
   bool open(const char* filename);
@@ -30,6 +33,14 @@ class ExtAnalysis
     return m_group_descs;
   }
 
+  inline int get_inode_bitmap_length() {
+    return m_super_block.inode_per_group / 8;
+  }
+  
+  inline int get_block_bitmap_length() {
+    return  GET_BLOCK_SIZE(m_super_block.log_blk_size); 
+  }
+
   int get_inode_bitmap(_dword group_num, 
 			_byte* bitmap,
 			size_t size);
@@ -37,7 +48,10 @@ class ExtAnalysis
 		       _byte* bitmap,
 		       size_t size);
 
-};
+  void get_used_bits(const _byte* bitmap, size_t size, std::vector<_dword>& used_bits);
+  int get_inodes(_dword group_num, std::vector<inode_info>& inodes);
+  i_node get_inode(_dword ino);
 
+};
 
 #endif

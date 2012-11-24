@@ -137,28 +137,4 @@ typedef struct _i_node {
 #define ENTRY_INODE_TABLE(inode, inodes_per_group) \
   (inode - 1) % inodes_per_group
 
-int read_super_block(int fd, fs_super_block* fs_super);
-int read_group_desc(int fd, 
-		    size_t blk_size, 
-		    const fs_super_block& fs_super, 
-		    std::vector<group_desc>& groups);
-
-_dword read_inode_bitmap(int fd,
-			 const fs_super_block& super,
-			 const group_desc& gd,
-			 _byte* bitmap,
-			 size_t bitmap_size);
-_dword read_block_bitmap(int fd,
-			 const fs_super_block& super,
-			 const group_desc& gd,
-			 _byte* bitmap,
-			 size_t bitmap_size);
-
-_dword read_vaild_inodes(int fd,
-			 const fs_super_block& super,
-			 const group_desc& gd,
-			 std::vector<i_node>& inodes);
-
-
-
 #endif
