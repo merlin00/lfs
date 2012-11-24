@@ -18,18 +18,30 @@ int select_menu()
 
   printf("%s\r\n", "=======================================");
   printf("%s\r\n", "0. Exit");
-  printf("%s\r\n", "1. Open file or dev");
+  printf("%s\r\n", "1. Open file or device");
   printf("%s\r\n", "2. Calucation on block group #");
-  printf("%s\r\n", "3. Print super block");
-  printf("%s\r\n", "4. Print group descriptor info");
-  printf("%s\r\n", "5. Print i-node info");
+  printf("%s\r\n", "3. Super block information");
+  printf("%s\r\n", "4. Group descriptor table");
+  printf("%s\r\n", "5. Inode bitmap in group #");
+  printf("%s\r\n", "6. Inode table in group #");
+  printf("%s\r\n", "7. Print i-node info");
   printf("%s\r\n", "=======================================");
 
   printf("%s", "? > ");
   scanf("%d", &num);
-  printf("\r\n");
+  // printf("\r\n");
   
   return num;
+}
+
+int input_group_num()
+{
+  int num_of_group =0;
+
+  printf("%-12s > ", "Input group #");
+  scanf("%d", &num_of_group);
+
+  return num_of_group;
 }
 
 void calcuate_block_group()
@@ -71,7 +83,8 @@ void print_super_block(const fs_super_block& blk)
   printf("%-22s : %10u \r\n", "Free inode count", blk.free_inode_cnt);
   printf("%-22s : %10u \r\n", "First data node block", blk.first_data_blk);
   // Block size = 1K * 2 ^ log_blk_size
-  printf("%-22s : %10u \r\n", "Block size", (_dword)(_1K_BLOCK * pow(2, blk.log_blk_size)));	
+  // printf("%-22s : %10u \r\n", "Block size", (_dword)(_1K_BLOCK * pow(2, blk.log_blk_size)));	
+  printf("%-22s : %10u \r\n", "Block size", GET_BLOCK_SIZE(blk.log_blk_size));	
   printf("%-22s : %10u \r\n", "Fragment size", (_dword)(_1K_BLOCK * pow(2,blk.log_frag_size)));
   printf("%-22s : %10u \r\n", "Blocks per group", blk.blks_per_group);	
   printf("%-22s : %10u \r\n", "Fragments per group", blk.frags_per_group);	
@@ -80,6 +93,7 @@ void print_super_block(const fs_super_block& blk)
   printf("%-22s : %10u \r\n", "Max mount count", (_dword)blk.max_mount_cnt);	
   printf("%-22s : %6s%4X \r\n", "Magic", "0x", blk.magic);
   printf("%-22s : %10u \r\n", "Block group #", (_dword)blk.blk_group_num);	
+  printf("%-22s : %10u \r\n", "Inode size", blk.inode_size);	
   printf("\r\n");
 }
 
@@ -118,7 +132,7 @@ void load_super_block(int fd, fs_super_block& super)
   if(fd < 0) return;
 
   memset(&super, 0, sizeof(fs_super_block));
-  if(get_super_block_from(fd, &super) < 0)
+  if(read_super_block(fd, &super) < 0)
     printf("%s ... Failed\r\n", "Load superblock");
   else
     printf("%s ... Ok\r\n", "Load superblock");
@@ -152,25 +166,87 @@ void print_element_of_group_desc(const vector<group_desc>& groups)
   }
 }
 
+void print_element_of_inode(const vector<i_node>& inodes)
+{
+  // Print group descriptor
+  size_t size = inodes.size();
+
+  for(size_t i = 0 ; i < size ; i++) {
+    printf("%3u  %04X   %04X   %10u   %04X   %10u   %10u \r\n",
+	   i, 
+	   inodes[i].mode, 
+	   inodes[i].uid, 
+	   inodes[i].size,
+	   inodes[i].gid, 
+	   inodes[i].link_cnt, 
+	   inodes[i].blocks);
+  }
+}
+
+void print_bitmap(const _byte* bitmap, size_t size)
+{
+  int col = 16;
+  int line = size / col;
+
+  printf("%4s ", "");
+  for(int i = 0 ; i < col ; i++)
+    printf("%02d ", i);
+  printf("\r\n");
+
+  for(int i = 0 ; i < line ; i++)
+    {
+      printf("%04X ", i * col);
+      for(int j = 0 ; j < col; j++)
+	printf("%02X ", bitmap[i * col + j]);
+      printf("\r\n");
+    }
+}
+
+void print_inode_bitmap(int fd,
+			const fs_super_block& super,
+			const group_desc& gd)
+{
+  _byte* buf = 0;
+  _dword blk_size = GET_BLOCK_SIZE(super.log_blk_size);
+  _dword ret = 0;
+  
+  buf = new _byte[blk_size];
+  
+  ret = read_inode_bitmap(fd, super, gd, buf, blk_size); 
+  if(ret < 0) {
+    printf("error : print inode bitmap\r\n");
+    return;
+  }
+
+  printf("%s\r\n", "=====================================================");
+  printf("\t%s\r\n", "i-node bitmap");
+  printf("%s\r\n", "-----------------------------------------------------");
+
+  print_bitmap(buf, ret);
+
+  delete[] buf;
+}
+
+
 void print_group_desc(const vector<group_desc>& groups)
 {
   print_title_of_group_desc();
   print_element_of_group_desc(groups);
 }
 
-void load_group_desc(int fd, const fs_super_block& fs_super, vector<group_desc>& groups)
+void load_group_desc(int fd, 
+		     const fs_super_block& fs_super, 
+		     vector<group_desc>& groups)
 {
   int cnt = 0;
 
   // Block size = 1K * 2 ^ log_blk_size
   _dword blk_size = _1K_BLOCK * pow(2, fs_super.log_blk_size);
 
-  cnt = get_group_desc_from(fd, blk_size, fs_super, groups);
+  cnt = read_group_desc(fd, blk_size, fs_super, groups);
   printf("%s : %d\r\n", "Totoal group descriptors", groups.size());
 
 }
-
-
 
 int main(int argc, char* argv[])
 {
@@ -178,7 +254,7 @@ int main(int argc, char* argv[])
   int fd = -1;
 
   fs_super_block fs_super;
-  vector<group_desc> group_descirptors;
+  vector<group_desc> group_descs;
 
   memset(&fs_super, 0, sizeof(fs_super_block));
 
@@ -190,11 +266,33 @@ int main(int argc, char* argv[])
 	case 1: 
 	  fd = open_file_from_input("Open file or device"); 
 	  load_super_block(fd, fs_super);
-	  load_group_desc(fd,fs_super, group_descirptors);
+	  load_group_desc(fd,fs_super, group_descs);
 	  break;
 	case 2: calcuate_block_group(); break;
 	case 3: print_super_block(fs_super); break;
-	case 4: print_group_desc(group_descirptors); break;
+	case 4: print_group_desc(group_descs); break;
+	case 5:
+	  {
+	    int num = input_group_num();
+	    group_desc gd = group_descs[num];
+	    print_inode_bitmap(fd, fs_super, gd);	    
+	    break;
+	  }
+	case 6:
+	  {
+	    vector<i_node> inodes;
+	    vector<_dword> nums;
+	    int num = input_group_num();
+	    group_desc gd = group_descs[num];
+	    read_vaild_inodes(fd, fs_super, gd, inodes);
+	    //get_inode_num(fd, fs_super, gd, 4096, nums);
+	    // get_inodes_from(gd, 
+	    // 		    fs_super.inode_per_group,
+	    // 		    fd,
+	    // 		    inodes);
+	    print_element_of_inode(inodes);
+	  }
+
 	default:  break;
 	}
     }while(sel);

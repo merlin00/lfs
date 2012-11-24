@@ -1,4 +1,5 @@
 #ifndef _EXTX_H_
+
 #define _EXTX_H_
 
 #define _1K_BLOCK 1024
@@ -34,7 +35,10 @@ typedef struct _dirent_disk_img{
 
 /* Superblock magic number 0xEF53 */
 #define MAGIC_NUM_OF_SUPERBLOCK 0xEF53
+#define POS_OF_SUPERBLOCK 1024
 #define SIZE_OF_SUPERBLOCK 264
+
+#define GET_BLOCK_SIZE(X) ((1 << X) * _1K_BLOCK)
 
 /* Linux superblock */
 typedef struct _fs_super_block {
@@ -86,7 +90,7 @@ typedef struct _fs_super_block {
   _word padding3;		/* Padding3 */
   _dword default_mount_opt;	/* Default mount option */
   _dword first_meta_bg;		/* First meta block group */
-}fs_super_block;
+}fs_super_block, ext_super_block;
 
 /* Group descriptor */
 #define SIZE_OF_GROUP_DESCRIPTOR 32 /* 32 bytes */
@@ -105,6 +109,8 @@ typedef struct _group_descriptor {
 }group_desc;
 
 /* Inode */
+#define SIZE_OF_INODE 128	/* 128 bytes */
+
 typedef struct _i_node {
   _word mode;
   _word uid;
@@ -116,8 +122,8 @@ typedef struct _i_node {
   _word gid;
   _word link_cnt;
   _dword blocks;
-  _dword flags;
-  _dword osdl;
+  _dword flags;  
+  _dword osd1;
   _dword block[15];
   _dword generation;
   _dword file_acl;
@@ -131,10 +137,28 @@ typedef struct _i_node {
 #define ENTRY_INODE_TABLE(inode, inodes_per_group) \
   (inode - 1) % inodes_per_group
 
-int get_super_block_from(int fd, fs_super_block* fs_super);
-int get_group_desc_from(int fd, 
-			size_t blk_size, 
-			const fs_super_block& fs_super, 
-			std::vector<group_desc>& groups);
+int read_super_block(int fd, fs_super_block* fs_super);
+int read_group_desc(int fd, 
+		    size_t blk_size, 
+		    const fs_super_block& fs_super, 
+		    std::vector<group_desc>& groups);
+
+_dword read_inode_bitmap(int fd,
+			 const fs_super_block& super,
+			 const group_desc& gd,
+			 _byte* bitmap,
+			 size_t bitmap_size);
+_dword read_block_bitmap(int fd,
+			 const fs_super_block& super,
+			 const group_desc& gd,
+			 _byte* bitmap,
+			 size_t bitmap_size);
+
+_dword read_vaild_inodes(int fd,
+			 const fs_super_block& super,
+			 const group_desc& gd,
+			 std::vector<i_node>& inodes);
+
+
 
 #endif
