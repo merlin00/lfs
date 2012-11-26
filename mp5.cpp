@@ -9,7 +9,7 @@
 #include <math.h>
 
 #include "extX.h"
-#include "ext2_analysis.hpp"
+#include "ext2analysis.hpp"
 
 using namespace std;
 
@@ -138,6 +138,7 @@ void load_super_block(int fd, fs_super_block& super)
     }*/
 
 // Print group descriptors
+
 void print_title_of_group_desc() 
 {
   // Print titile
@@ -181,6 +182,25 @@ void print_element_of_inode(const vector<i_node>& inodes)
 	   inodes[i].blocks);
   }
 }
+
+void print_indoes(const Ext2Analysis::vect_inodes &inodes)
+{
+  // Print group descriptor
+  size_t size = inodes.size();
+
+  for(size_t i = 0 ; i < size ; i++) {
+    const Ext2Analysis::pair_inode& inode = inodes[i];
+    printf("%3u  %04X   %04X   %10u   %04X   %10u   %10u \r\n",
+	   inode.first, 
+	   inode.second.mode, 
+	   inode.second.uid, 
+	   inode.second.size,
+	   inode.second.gid, 
+	   inode.second.link_cnt, 
+	   inode.second.blocks);
+    }
+}
+
 
 void print_bitmap(const _byte* bitmap, size_t size)
 {
@@ -252,7 +272,7 @@ void load_group_desc(int fd,
 int main(int argc, char* argv[])
 {
   int sel = 5;
-  ExtAnalysis ext("/dev/mapper/vg_kkd-lv_root");
+  Ext2Analysis ext("/dev/mapper/vg_kkd-lv_root");
 
   do
     {
@@ -280,12 +300,11 @@ int main(int argc, char* argv[])
 	  }
 	case 6:
 	  {
-	    vector<ExtAnalysis::inode_info> inodes;
-	    int num = input_group_num();
+	    Ext2Analysis::vect_inodes inodes;
 
+	    int num = input_group_num();
 	    ext.get_inodes(num, inodes);
-	    //	    printf("%d\r\n", inodes.size());
-	    // print_element_of_inode(inodes);
+	    print_indoes(inodes);	   
 	  }
 
 	default:  break;
