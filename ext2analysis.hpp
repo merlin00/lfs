@@ -18,16 +18,14 @@ public:
   typedef std::pair<_dword, i_node> pair_inode;
   typedef std::vector<pair_inode> vect_inodes;
 
-  inline static  _dword get_group_number(_dword ino) {
+  inline _dword get_group_number(_dword ino) {
     // if(ino > 0) 
     return (ino - 1) / m_super_block.inode_per_group;
   }
 
-  inline static _dword get_inode_offset(_dword ino) {
-    return (ino - 1) % m-super_block.inode_per_group;
+  inline _dword get_inode_offset(_dword ino) {
+    return (ino - 1) % m_super_block.inode_per_group;
   }
-  
-
 
 public:
   Ext2Analysis();

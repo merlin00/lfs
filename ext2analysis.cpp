@@ -205,7 +205,7 @@ i_node Ext2Analysis::get_inode(_dword ino)
   offset += get_inode_offset(ino) * inode_size;
 
   lseek64(m_fd, offset, SEEK_SET);
-  read(m_fd, &inode, inode_size);
+  read(m_fd, &inode, 128/*inode_size*/);
 
   return inode;  
 }

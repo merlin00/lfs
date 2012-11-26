@@ -10,13 +10,12 @@
 
 #include "extX.h"
 #include "ext2analysis.hpp"
+#include "ext2presentation.hpp"
 
 using namespace std;
 
-int select_menu()
+void print_select_menu()
 {
-  int num = 0;
-
   printf("%s\r\n", "=======================================");
   printf("%s\r\n", "0. Exit");
   printf("%s\r\n", "1. Open file or device");
@@ -27,24 +26,19 @@ int select_menu()
   printf("%s\r\n", "6. Inode table in group #");
   printf("%s\r\n", "7. Print i-node info");
   printf("%s\r\n", "=======================================");
+}
 
-  printf("%s", "? > ");
+int input_num(const char* title)
+{
+  int num = 0;
+
+  printf("%s >", title);
   scanf("%d", &num);
-  
+
   return num;
 }
 
-int input_group_num()
-{
-  int num_of_group =0;
-
-  printf("%-12s > ", "Input group #");
-  scanf("%d", &num_of_group);
-
-  return num_of_group;
-}
-
-void calcuate_block_group()
+void calculate_block_group()
 {
   int num_of_inode = 0;
   int num_of_group =0;
@@ -73,28 +67,6 @@ void calcuate_block_group()
   printf("\r\n");
 }
 
-void print_super_block(const fs_super_block& blk)
-{
-  printf("%-22s : %10s \r\n", "Last mounted on", blk.last_mounted);
-  printf("%-22s : %10u \r\n", "Inode count", blk.inode_cnt);
-  printf("%-22s : %10u \r\n", "Block count", blk.blk_cnt);	
-  printf("%-22s : %10u \r\n", "Res block count", blk.res_blk_cnt);	
-  printf("%-22s : %10u \r\n", "Free block count", blk.free_blk_cnt);
-  printf("%-22s : %10u \r\n", "Free inode count", blk.free_inode_cnt);
-  printf("%-22s : %10u \r\n", "First data node block", blk.first_data_blk);
-  printf("%-22s : %10u \r\n", "Block size", GET_BLOCK_SIZE(blk.log_blk_size));	
-  printf("%-22s : %10u \r\n", "Fragment size", (_dword)(_1K_BLOCK * pow(2,blk.log_frag_size)));
-  printf("%-22s : %10u \r\n", "Blocks per group", blk.blks_per_group);	
-  printf("%-22s : %10u \r\n", "Fragments per group", blk.frags_per_group);	
-  printf("%-22s : %10u \r\n", "Inode per group", blk.inode_per_group);
-  printf("%-22s : %10u \r\n", "Mount count", blk.mount_cnt);	
-  printf("%-22s : %10u \r\n", "Max mount count", (_dword)blk.max_mount_cnt);	
-  printf("%-22s : %6s%4X \r\n", "Magic", "0x", blk.magic);
-  printf("%-22s : %10u \r\n", "Block group #", (_dword)blk.blk_group_num);	
-  printf("%-22s : %10u \r\n", "Inode size", blk.inode_size);	
-  printf("\r\n");
-}
-
 int open_file_from_input(char* sz_title)
 {
   char filename[256];
@@ -119,88 +91,6 @@ int open_file_from_input(char* sz_title)
 
   return fd;
 }
-
-inline void close_file_opened(int fd)
-{
-  close(fd);
-}
-
-/*
-void load_super_block(int fd, fs_super_block& super)
-{
-  if(fd < 0) return;
-
-  memset(&super, 0, sizeof(fs_super_block));
-  if(read_super_block(fd, &super) < 0)
-    printf("%s ... Failed\r\n", "Load superblock");
-  else
-    printf("%s ... Ok\r\n", "Load superblock");
-    }*/
-
-// Print group descriptors
-
-void print_title_of_group_desc() 
-{
-  // Print titile
-  printf("%s\r\n", "======================================================================");
-  printf("%3s  %10s  %10s  %10s  %8s  %8s  %8s\r\n",
-	 "no", "blk map", "ino map", "ino table",
-	 "free blk", "free ino", "used dir");
-  printf("%s\r\n", "----------------------------------------------------------------------");
-}
-
-void print_element_of_group_desc(const vector<group_desc>& groups)
-{
-  // Print group descriptor
-  size_t size = groups.size();
-
-  for(size_t i = 0 ; i < size ; i++) {
-    printf("%3d  %9u   %9u   %9u   %7u   %7u   %7u \r\n",
-	   i, 
-	   groups[i].blk_bitmap, 
-	   groups[i].inode_bitmap, 
-	   groups[i].inode_table,
-	   groups[i].free_blk_cnt, 
-	   groups[i].free_inode_cnt, 
-	   groups[i].useddir_cnt);
-  }
-}
-
-void print_element_of_inode(const vector<i_node>& inodes)
-{
-  // Print group descriptor
-  size_t size = inodes.size();
-
-  for(size_t i = 0 ; i < size ; i++) {
-    printf("%3u  %04X   %04X   %10u   %04X   %10u   %10u \r\n",
-	   i, 
-	   inodes[i].mode, 
-	   inodes[i].uid, 
-	   inodes[i].size,
-	   inodes[i].gid, 
-	   inodes[i].link_cnt, 
-	   inodes[i].blocks);
-  }
-}
-
-void print_indoes(const Ext2Analysis::vect_inodes &inodes)
-{
-  // Print group descriptor
-  size_t size = inodes.size();
-
-  for(size_t i = 0 ; i < size ; i++) {
-    const Ext2Analysis::pair_inode& inode = inodes[i];
-    printf("%3u  %04X   %04X   %10u   %04X   %10u   %10u \r\n",
-	   inode.first, 
-	   inode.second.mode, 
-	   inode.second.uid, 
-	   inode.second.size,
-	   inode.second.gid, 
-	   inode.second.link_cnt, 
-	   inode.second.blocks);
-    }
-}
-
 
 void print_bitmap(const _byte* bitmap, size_t size)
 {
@@ -247,36 +137,19 @@ void print_inode_bitmap(int fd,
   delete[] buf;
   }*/
 
-
-void print_group_desc(const vector<group_desc>& groups)
-{
-  print_title_of_group_desc();
-  print_element_of_group_desc(groups);
-}
-
-/*
-void load_group_desc(int fd, 
-		     const fs_super_block& fs_super, 
-		     vector<group_desc>& groups)
-{
-  int cnt = 0;
-
-  // Block size = 1K * 2 ^ log_blk_size
-  _dword blk_size = _1K_BLOCK * pow(2, fs_super.log_blk_size);
-
-  cnt = read_group_desc(fd, blk_size, fs_super, groups);
-  printf("%s : %d\r\n", "Totoal group descriptors", groups.size());
-
-  }*/
-
 int main(int argc, char* argv[])
 {
   int sel = 5;
   Ext2Analysis ext("/dev/mapper/vg_kkd-lv_root");
+  Ext2Presentation present;
+
+  present.attach_ext2(&ext);
 
   do
     {
-      sel = select_menu();
+      print_select_menu();
+      sel = input_num("?");
+
       switch(sel)
 	{
 	case 1: 
@@ -284,28 +157,11 @@ int main(int argc, char* argv[])
 	  //load_super_block(fd, fs_super);
 	  //load_group_desc(fd,fs_super, group_descs);
 	  break;
-	case 2: calcuate_block_group(); break;
-	case 3: 
-	  print_super_block(ext.get_super_block());
-	  break;
-	case 4: 
-	  print_group_desc(ext.get_group_desc()); 
-	  break;
-	case 5:
-	  {
-	    // int num = input_group_num();
-	    // group_desc gd = group_descs[num];
-	    // print_inode_bitmap(fd, fs_super, gd);	    
-	    // break;
-	  }
-	case 6:
-	  {
-	    Ext2Analysis::vect_inodes inodes;
-
-	    int num = input_group_num();
-	    ext.get_inodes(num, inodes);
-	    print_indoes(inodes);	   
-	  }
+	case 2: calculate_block_group(); break;
+	case 3: present.print_super_block(); break;
+	case 4: present.print_group_desc(); break;
+	case 5: present.print_inode(input_num("inode #")); break;
+	case 6: present.print_inodes_in_group(input_num("Group #")); break;
 
 	default:  break;
 	}
