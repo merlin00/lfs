@@ -33,6 +33,16 @@ typedef struct _dirent_disk_img{
   char* name;
 }dirent_disk_img;
 
+
+#define HDR_SIZE_OF_DIR_ENTRY 8
+typedef struct _ext2_dir_entry {
+  __ino_t ino;
+  _word rec_len;
+  _byte name_len;
+  _byte file_type;
+  char name[256];
+}ext2_dir_entry;
+
 /* Superblock magic number 0xEF53 */
 #define MAGIC_NUM_OF_SUPERBLOCK 0xEF53
 #define POS_OF_SUPERBLOCK 1024
@@ -96,7 +106,7 @@ typedef struct _fs_super_block {
 #define SIZE_OF_GROUP_DESCRIPTOR 32 /* 32 bytes */
 
 typedef struct _group_descriptor {
-  _dword blk_bitmap;		/* Block bitmap */
+  _dword block_bitmap;		/* Block bitmap */
   _dword inode_bitmap;		/* Inode bitmap */
   _dword inode_table;		/* Inode table */
   _word free_blk_cnt;		/* Free block count */

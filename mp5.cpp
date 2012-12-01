@@ -4,13 +4,15 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
+#include <iostream>
 #include <vector>
 
 #include <math.h>
 
 #include "extX.h"
-#include "ext2analysis.hpp"
-#include "ext2presentation.hpp"
+#include "ext4analysis.hpp"
+#include "ext4presentation.hpp"
 
 using namespace std;
 
@@ -22,9 +24,11 @@ void print_select_menu()
   printf("%s\r\n", "2. Calucation on block group #");
   printf("%s\r\n", "3. Super block information");
   printf("%s\r\n", "4. Group descriptor table");
-  printf("%s\r\n", "5. Inode bitmap in group #");
+  printf("%s\r\n", "5. Inode info");
   printf("%s\r\n", "6. Inode table in group #");
-  printf("%s\r\n", "7. Print i-node info");
+  printf("%s\r\n", "7. Dump a block");
+  printf("%s\r\n", "8. Block bitmap");
+  printf("%s\r\n", "9. Inode bitmap");
   printf("%s\r\n", "=======================================");
 }
 
@@ -92,80 +96,132 @@ int open_file_from_input(char* sz_title)
   return fd;
 }
 
-void print_bitmap(const _byte* bitmap, size_t size)
+#define SIZE_OF_CMD_OPT 10
+#define SIZE_OF_OPT_PARAM 256
+
+typedef struct _cmd_option {
+  char opt[SIZE_OF_CMD_OPT];
+  char param[SIZE_OF_OPT_PARAM];
+}cmd_option;
+
+int parse_cmd_opt(char* opt, size_t size, cmd_option& cmd_opt)
 {
-  int col = 16;
-  int line = size / col;
+  int i = 0, j;
+  
+  for(j = 0 ; i < size && opt[i] != '=' ; i ++)
+    cmd_opt.opt[j++] = opt[i];
+  cmd_opt.opt[j] = 0;
 
-  printf("%4s ", "");
-  for(int i = 0 ; i < col ; i++)
-    printf("%02d ", i);
-  printf("\r\n");
+  if(!(i < size)) return -1;
+  i++;
+  for(j = 0 ; i < size ; i++)
+    cmd_opt.param[j++] = opt[i];
+  cmd_opt.param[j] = 0;
 
-  for(int i = 0 ; i < line ; i++)
-    {
-      printf("%04X ", i * col);
-      for(int j = 0 ; j < col; j++)
-	printf("%02X ", bitmap[i * col + j]);
-      printf("\r\n");
-    }
+  return (opt[0] == '-') ? 0 : 1;  
 }
 
-/*
-void print_inode_bitmap(int fd,
-			const fs_super_block& super,
-			const group_desc& gd)
+// Print option
+/* 
+   -s   print super block
+   -gt  print group descriptor table
+   -it  print inode table
+
+   -imap print inode bitmap
+       gno=group number
+   -bmap print block bitmap
+       gno=group number
+   -inode print inode
+       ino=inode number
+   -group print group descriptor
+       gno=group number
+   -block print block dump
+       bno=block number
+*/
+
+void interactive_option(const Ext4Presentation& present)
 {
-  _byte* buf = 0;
-  _dword blk_size = GET_BLOCK_SIZE(super.log_blk_size);
-  _dword ret = 0;
+  int sel = 5;
+  /*
+  do {
+    print_select_menu();
+    sel = input_num("?");
+
+    switch(sel) {
+      case 2: calculate_block_group(); break;
+      case 5: present.print_inode(input_num("inode #")); break;
+      case 7: present.dump_block(input_num("Block #")); break;
+      case 8: present.print_block_map(input_num("Group #")); break;
+      case 9: present.print_inode_map(input_num("Group #")); break;
+    default:  break;
+    }
+    }while(sel);*/
   
-  buf = new _byte[blk_size];
-  
-  ret = read_inode_bitmap(fd, super, gd, buf, blk_size); 
-  if(ret < 0) {
-    printf("error : print inode bitmap\r\n");
-    return;
-  }
 
-  printf("%s\r\n", "=====================================================");
-  printf("\t%s\r\n", "i-node bitmap");
-  printf("%s\r\n", "-----------------------------------------------------");
+}
 
-  print_bitmap(buf, ret);
-
-  delete[] buf;
-  }*/
 
 int main(int argc, char* argv[])
 {
-  int sel = 5;
-  Ext2Analysis ext("/dev/mapper/vg_kkd-lv_root");
-  Ext2Presentation present;
+  //  int sel = 5;
 
-  present.attach_ext2(&ext);
+  _dword gno, ino, bno;
+  vector<char*> param_opts, exec_opts;
 
-  do
-    {
-      print_select_menu();
-      sel = input_num("?");
+  Ext4Analysis ext;
+  Ext4Presentation present;
 
-      switch(sel)
-	{
-	case 1: 
-	  //fd = open_file_from_input("Open file or device"); 
-	  //load_super_block(fd, fs_super);
-	  //load_group_desc(fd,fs_super, group_descs);
-	  break;
-	case 2: calculate_block_group(); break;
-	case 3: present.print_super_block(); break;
-	case 4: present.print_group_desc(); break;
-	case 5: present.print_inode(input_num("inode #")); break;
-	case 6: present.print_inodes_in_group(input_num("Group #")); break;
+  gno = ino = bno = 0;
 
-	default:  break;
-	}
-    }while(sel);
+  for(int i = 1 ; i < argc ; i++)
+    if(argv[i][0] == '-') exec_opts.push_back(argv[i]);
+    else param_opts.push_back(argv[i]);
 
+  while(param_opts.size()) {
+    char* opt = param_opts.back();
+    cmd_option cmd_opt;
+
+    param_opts.pop_back();
+    memset(&cmd_opt, 0, sizeof(cmd_option));
+
+    parse_cmd_opt(opt, strlen(opt), cmd_opt);
+
+    if(strcmp(cmd_opt.opt, "if") == 0) {
+      cout << cmd_opt.param << " open ... " << endl;
+      if(!ext.open(cmd_opt.param)) {
+	cout << "failed " << endl;
+	return -1;
+      }
+      cout << "ok" << endl; 
+    }
+    else if(strcmp(cmd_opt.opt, "gno") == 0) { gno = atol(cmd_opt.param); cout << "gno=" << gno << endl; }
+    else if(strcmp(cmd_opt.opt, "ino") == 0) {
+      ino = atol(cmd_opt.param);
+    }
+    else if(strcmp(cmd_opt.opt, "bno") == 0) bno = atol(cmd_opt.param);
+
+  }
+
+  present.attach_ext4(&ext);
+
+  while(exec_opts.size()) {
+    char* opt = exec_opts.back();
+    exec_opts.pop_back();
+    
+    if(strcmp(opt, "-s") == 0) present.print_super_block();         // Print super block;
+    else if(strcmp(opt, "-gt") == 0) present.print_group_desc();    // Print group descriptor table
+    else if(strcmp(opt, "-bmap") == 0) present.print_block_map(gno);   // Print block bitmap
+    else if(strcmp(opt, "-imap") == 0) present.print_inode_map(gno);   // Print inode bitmap
+    else if(strcmp(opt, "-it") == 0) present.print_inodes_in_group(gno);   // Print inode table
+    // else if(strcmp(opt, "-group") == 0) present.print_super_block();   // Print group descriptor
+    else if(strcmp(opt, "-inode") == 0) present.print_inode(ino);   // Print inode
+    else if(strcmp(opt, "-block") == 0) present.dump_block(bno);   // Dump  block
+    
+  }
+
+  /*
+ 
+
+  */
   return 0;
 }

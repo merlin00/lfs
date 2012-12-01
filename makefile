@@ -1,4 +1,4 @@
-srcs = mp5.cpp ext2analysis.cpp ext2presentation.cpp
+srcs = mp5.cpp ext4analysis.cpp ext4presentation.cpp
 objs = ${srcs:.cpp=.o}
 target = extx
 
