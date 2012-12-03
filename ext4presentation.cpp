@@ -1,7 +1,11 @@
 #include <iostream>
 #include <vector>
-#include <stdio.h>
 #include <iomanip>
+
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "extX.h"
 #include "ext4analysis.hpp"
@@ -115,6 +119,28 @@ void Ext4Presentation::print_group_desc()
   _print_element_of_group_desc(m_ext4->get_group_desc());
 }
 
+void Ext4Presentation::_print_symbolic_link(const i_node& inode)
+{
+  cout << endl;
+  cout << "i_blocks used as Symbolic link path if its length less than 60 bytes" << endl;
+  if(inode.size < 60) {
+    cout << "Symbolic link path : ";
+    cout << (char*)inode.block << endl << endl;
+    cout << "Dump i_blocks" << endl;
+    _dump((_byte*)inode.block, 60);
+  }
+}
+
+void Ext4Presentation::_print_extent_header(const ext4_extent_header& hdr)
+{
+  cout << setw(15) << left << "Extent header" << endl;
+  cout << setw(15) << left << "\tMagic" << "0x" << hex << hdr.eh_magic << dec << endl;
+  cout << setw(15) << left << "\tEntries" << hdr.eh_entries << endl;;
+  cout << setw(15) << left << "\tMax" << hdr.eh_max << endl;
+  cout << setw(15) << left << "\tDepth" << hdr.eh_depth << endl;
+  cout << setw(15) << left << "\tGeneration" << hdr.eh_generation << endl;
+}
+
 void Ext4Presentation::print_inodes_in_group(_dword group_num)
 {
   Ext4Analysis::vect_inodes inodes;
@@ -146,7 +172,9 @@ void Ext4Presentation::_print_inode(_dword ino, const i_node& inode)
   cout << setw(15) << left << "inode #" << setw(10) << right << ino << endl;
   cout << uppercase;
   cout << oct;
-  cout << setw(15) << left << "mode" << setw(4) << right << "o" << setw(6) << right << inode.mode << endl;
+  cout << setw(15) << left << "mode" ;
+  cout << setw(4) << right << "o" << setfill('0') <<  setw(6) << right << inode.mode << endl;
+  cout << setfill(' ');
   cout << dec;
   cout << setw(15) << left << "uid" << setw(10) << right << inode.uid << endl;
   cout << setw(15) << left << "size" << setw(10) << right << inode.size << endl;
@@ -154,14 +182,30 @@ void Ext4Presentation::_print_inode(_dword ino, const i_node& inode)
   cout << setw(15) << left << "link count" << setw(10) << right << inode.link_cnt << endl;
   cout << setw(15) << left << "blocks" << setw(10) << right << inode.blocks << endl;
   cout << hex;
-  cout << setw(15) << left << "flags" << setw(10) << right << inode.flags << endl;
+  cout << setw(15) << left << "flags";
+  cout << setfill('0');
+  cout << "0x" << setw(8) << right << inode.flags << endl;
+  cout << setfill(' ');
   cout << dec;
 
-  for(int i = 0 ; i < 15 ; i++) {
-    cout << "block[" << setw(2) << i << "]" << setw(6) << ""
-	 << setw(10) << right << inode.block[i] << endl;
+  if(inode.flags & EXT4_EXTENTS_FL)
+    cout << "Inode uses extents" << endl;
+
+  // Check whether or not symbolic link file.
+  if(S_ISLNK(inode.mode))
+    _print_symbolic_link(inode);
+  else if(S_ISDIR(inode.mode)) {
+    cout << "Directory file" << endl;
+    _print_extent_header(*((ext4_extent_header*)&inode.block));
   }
+  //  else{
+    for(int i = 0 ; i < 15 ; i++) {
+      cout << "block[" << setw(2) << i << "]" << setw(6) << ""
+	   << setw(10) << right << inode.block[i] << endl;
+    }
+    //  }
   cout << setfill(' ');
+  
 }
 
 void Ext4Presentation::print_inode(_dword ino)

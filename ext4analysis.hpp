@@ -30,7 +30,7 @@ public:
 
 public:
   Ext4Analysis();
-  ~Ext4Analysis() { close();}
+  ~Ext4Analysis() { close(); }
   Ext4Analysis(const char* filename);
 
   bool open(const char* filename);
@@ -67,6 +67,8 @@ public:
 
   i_node get_inode(_dword ino);
   int get_block(_dword block_num, _byte* block, size_t size);
+
+  std::pair<ext4_extent_header, std::vector< ext4_extent>> 
 
   static int extract_dir_from_block(const _byte* block, size_t size, vect_dir& dir);
 

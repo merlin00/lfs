@@ -11,6 +11,8 @@ private:
   void _print_inodes_in_group(const Ext4Analysis::vect_inodes& inodes);
   void _print_title_of_group_desc();
   void _print_element_of_group_desc(const std::vector<group_desc>& groups);
+  void _print_symbolic_link(const i_node& inode);
+  void _print_extent_header(const ext4_extent_header& hdr);
 
   void _dump(const _byte* buf, size_t size);
 

@@ -187,7 +187,7 @@ int main(int argc, char* argv[])
     parse_cmd_opt(opt, strlen(opt), cmd_opt);
 
     if(strcmp(cmd_opt.opt, "if") == 0) {
-      cout << cmd_opt.param << " open ... " << endl;
+      cout << cmd_opt.param << " open ... ";
       if(!ext.open(cmd_opt.param)) {
 	cout << "failed " << endl;
 	return -1;
