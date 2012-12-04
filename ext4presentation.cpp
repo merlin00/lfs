@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "extX.h"
 #include "ext4analysis.hpp"
@@ -84,7 +85,6 @@ void Ext4Presentation::print_super_block()
   cout << setw(22) << left << "Inode size" << ":"
        << setw(10) << right << sb.inode_size << endl;
 }
-
 
 void Ext4Presentation::_print_element_of_group_desc(const vector<group_desc>& groups)
 {
@@ -188,24 +188,24 @@ void Ext4Presentation::_print_inode(_dword ino, const i_node& inode)
   cout << setfill(' ');
   cout << dec;
 
-  if(inode.flags & EXT4_EXTENTS_FL)
+  if(inode.flags & EXT4_EXTENTS_FL) {
     cout << "Inode uses extents" << endl;
+    _print_extent((char*)(inode.block), 60);
+  } 
+  else {
+    for(int i = 0 ; i < 15 ; i++) {
+      cout << "block[" << setw(2) << i << "]" << setw(6) << ""
+	   << setw(10) << right << inode.block[i] << endl;
+    }
+    cout << setfill(' ');
+  }
 
   // Check whether or not symbolic link file.
   if(S_ISLNK(inode.mode))
     _print_symbolic_link(inode);
   else if(S_ISDIR(inode.mode)) {
     cout << "Directory file" << endl;
-    _print_extent_header(*((ext4_extent_header*)&inode.block));
   }
-  //  else{
-    for(int i = 0 ; i < 15 ; i++) {
-      cout << "block[" << setw(2) << i << "]" << setw(6) << ""
-	   << setw(10) << right << inode.block[i] << endl;
-    }
-    //  }
-  cout << setfill(' ');
-  
 }
 
 void Ext4Presentation::print_inode(_dword ino)
@@ -275,6 +275,7 @@ void Ext4Presentation::print_inode_map(_dword group_num)
   buf = new _byte[block_size];
   if(!buf) return;
 
+  // Get inode bitmap by group number.
   int retval = m_ext4->get_inode_bitmap(group_num, buf, block_size);
 
   _dump(buf, retval);
@@ -296,3 +297,33 @@ void Ext4Presentation::print_block_map(_dword group_num)
 
   delete[] buf;
 }
+
+void Ext4Presentation::_print_extent(const char* block, size_t size)
+{
+  ext4_extent_header hdr;
+  vector<ext4_extent> entries;
+
+  memset(&hdr, 0, sizeof(ext4_extent_header));
+  hdr = m_ext4->get_block_tree(block, size, entries);
+  
+  _print_extent_header(hdr);
+
+
+  for(int i = 0 ; i < hdr.eh_entries ; i++) {
+    _print_extent_leaf(entries[i]);
+  }
+}
+
+void Ext4Presentation::_print_extent_idx(const ext4_extent& entry)
+{
+}
+
+void Ext4Presentation::_print_extent_leaf(const ext4_extent& entry)
+{
+  cout << setw(15) << left << "Extent leaf" << endl;
+  cout << setw(15) << left << "\tBlock" << entry.leaf.ee_block << endl;
+  cout << setw(15) << left << "\tLength" << entry.leaf.ee_len << endl;;
+  cout << setw(15) << left << "\tStart Hi" << entry.leaf.ee_start_hi << endl;
+  cout << setw(15) << left << "\tStart Lo" << entry.leaf.ee_start_lo << endl;
+}
+

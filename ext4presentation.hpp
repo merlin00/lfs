@@ -13,6 +13,9 @@ private:
   void _print_element_of_group_desc(const std::vector<group_desc>& groups);
   void _print_symbolic_link(const i_node& inode);
   void _print_extent_header(const ext4_extent_header& hdr);
+  void _print_extent(const char* block, size_t size);
+  void _print_extent_idx(const ext4_extent& entry);
+  void _print_extent_leaf(const ext4_extent& entry);
 
   void _dump(const _byte* buf, size_t size);
 

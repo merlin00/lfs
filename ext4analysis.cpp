@@ -239,3 +239,33 @@ int Ext4Analysis::extract_dir_from_block(const _byte* block, size_t size, vect_d
 
   return dir.size();	 
 }
+
+ext4_extent_header Ext4Analysis::get_block_tree(const char* block, 
+						size_t size, 
+						std::vector<ext4_extent>& entries)
+{
+  size_t offset = 0;
+  size_t total;
+  int i;
+  ext4_extent_header hdr;
+  
+  memcpy(&hdr, block, sizeof(ext4_extent_header));
+  offset += sizeof(ext4_extent_header);
+
+  if(hdr.eh_magic != EXTENT_MAGIC) return hdr;
+  total = hdr.eh_entries * sizeof(ext4_extent) + sizeof(ext4_extent_header);
+  if(total > size) return hdr;
+
+  for(i = 0 ; i < hdr.eh_entries ; i++) {
+    ext4_extent entry;
+
+    memset(&entry, 0, sizeof(ext4_extent));
+    memcpy(&entry, block + offset, sizeof(ext4_extent));
+
+    entries.push_back(entry);
+
+    offset += sizeof(ext4_extent);    
+  }
+
+  return hdr;
+}

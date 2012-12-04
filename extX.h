@@ -175,6 +175,8 @@ typedef struct _i_node {
   _byte osd2[12];
 }i_node;
 
+#define EXTENT_MAGIC 0xF30A
+
 typedef struct _ext4_extent_header {
   _word eh_magic;
   _word eh_entries;
@@ -184,19 +186,19 @@ typedef struct _ext4_extent_header {
 }ext4_extent_header;
 
 typedef union _ext4_extent {
-  typedef struct _ext4_extent_idx {
+  struct _ext4_extent_idx {
     _dword ei_block;
     _dword ei_leaf_lo;
     _word ei_leaf_hi;
     _word ei_unused;
-  }ext4_extent_idx;
+  }idx;
 
-  typedef struct _ext4_extent_leaf {
+  struct _ext4_extent_leaf {
     _dword ee_block;
-    _dword ee_len;
-    _dword ee_start_hi;
+    _word ee_len;
+    _word ee_start_hi;
     _dword ee_start_lo;
-  }ext4_extent_leaf;
+  }leaf;
 }ext4_extent;
 
 typedef struct _ext4_extent_tail {

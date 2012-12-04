@@ -62,13 +62,17 @@ public:
 		       _byte* bitmap,
 		       size_t size);
 
-  void get_used_bits(const _byte* bitmap, size_t size, std::vector<_dword>& used_bits);
+  void get_used_bits(const _byte* bitmap, 
+		     size_t size, 
+		     std::vector<_dword>& used_bits);
   int get_inodes(_dword group_num, vect_inodes& inodes);
 
   i_node get_inode(_dword ino);
   int get_block(_dword block_num, _byte* block, size_t size);
 
-  std::pair<ext4_extent_header, std::vector< ext4_extent>> 
+  ext4_extent_header get_block_tree(const char* block, 
+				    size_t size, 
+				    std::vector<ext4_extent>& entries);
 
   static int extract_dir_from_block(const _byte* block, size_t size, vect_dir& dir);
 
