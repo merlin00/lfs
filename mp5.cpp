@@ -10,9 +10,9 @@
 
 #include <math.h>
 
-#include "extX.h"
-#include "ext4analysis.hpp"
-#include "ext4presentation.hpp"
+#include "ext2.h"
+#include "fs_ext2.hpp"
+#include "ext2p.hpp"
 
 using namespace std;
 
@@ -56,8 +56,8 @@ void calculate_block_group()
   scanf("%d", &num_of_inode);
   printf("\r\n");
 
-  num_of_group = BLOCK_GROUP_OF_INODE(num_of_inode, INODES_PER_GROUP);
-  entry = ENTRY_INODE_TABLE(num_of_inode, INODES_PER_GROUP);
+  //num_of_group = BLOCK_GROUP_OF_INODE(num_of_inode, INODES_PER_GROUP);
+  //  entry = ENTRY_INODE_TABLE(num_of_inode, INODES_PER_GROUP);
 
   printf("%s\r\n", "---------------------------------------");
   printf("%-27s : %d\r\n", "i-node num", num_of_inode);
@@ -126,7 +126,7 @@ int parse_cmd_opt(char* opt, size_t size, cmd_option& cmd_opt)
    -s   print super block
    -gt  print group descriptor table
    -it  print inode table
-
+   dump print hex code
    -imap print inode bitmap
        gno=group number
    -bmap print block bitmap
@@ -138,8 +138,7 @@ int parse_cmd_opt(char* opt, size_t size, cmd_option& cmd_opt)
    -block print block dump
        bno=block number
 */
-
-void interactive_option(const Ext4Presentation& present)
+void interactive_option(const Ext2p& present)
 {
   int sel = 5;
   /*
@@ -168,8 +167,8 @@ int main(int argc, char* argv[])
   _dword gno, ino, bno;
   vector<char*> param_opts, exec_opts;
 
-  Ext4Analysis ext;
-  Ext4Presentation present;
+  FsExt2 ext;
+  Ext2p present;
 
   gno = ino = bno = 0;
 
@@ -194,28 +193,33 @@ int main(int argc, char* argv[])
       }
       cout << "ok" << endl; 
     }
-    else if(strcmp(cmd_opt.opt, "gno") == 0) { gno = atol(cmd_opt.param); cout << "gno=" << gno << endl; }
-    else if(strcmp(cmd_opt.opt, "ino") == 0) {
+    else if(!strcmp(cmd_opt.opt, "gno")) { gno = atol(cmd_opt.param); cout << "gno=" << gno << endl; }
+    else if(!strcmp(cmd_opt.opt, "ino")) {
       ino = atol(cmd_opt.param);
     }
-    else if(strcmp(cmd_opt.opt, "bno") == 0) bno = atol(cmd_opt.param);
+    else if(!strcmp(cmd_opt.opt, "bno")) bno = atol(cmd_opt.param);
+    else if(!strcmp(cmd_opt.opt, "dump")){
+      cout << " dump"  << endl;
+      if(!strcmp(cmd_opt.param, "true")) present.set_dump();
+      else present.clear_dump();
+    }
 
   }
 
-  present.attach_ext4(&ext);
+  present.attach(&ext);
 
   while(exec_opts.size()) {
     char* opt = exec_opts.back();
     exec_opts.pop_back();
     
-    if(strcmp(opt, "-s") == 0) present.print_super_block();         // Print super block;
-    else if(strcmp(opt, "-gt") == 0) present.print_group_desc();    // Print group descriptor table
-    else if(strcmp(opt, "-bmap") == 0) present.print_block_map(gno);   // Print block bitmap
-    else if(strcmp(opt, "-imap") == 0) present.print_inode_map(gno);   // Print inode bitmap
-    else if(strcmp(opt, "-it") == 0) present.print_inodes_in_group(gno);   // Print inode table
+    if(!strcmp(opt, "-s")) present.print_super_block();         // Print super block;
+    else if(!strcmp(opt, "-gt")) present.print_group_desc();    // Print group descriptor table
+    else if(!strcmp(opt, "-bmap")) present.print_block_map(gno);   // Print block bitmap
+    else if(!strcmp(opt, "-imap")) present.print_inode_map(gno);   // Print inode bitmap
+    else if(!strcmp(opt, "-it")) present.print_inodes_in_group(gno);   // Print inode table
     // else if(strcmp(opt, "-group") == 0) present.print_super_block();   // Print group descriptor
-    else if(strcmp(opt, "-inode") == 0) present.print_inode(ino);   // Print inode
-    else if(strcmp(opt, "-block") == 0) present.dump_block(bno);   // Dump  block
+    else if(!strcmp(opt, "-inode")) present.print_inode(ino);   // Print inode
+    else if(!strcmp(opt, "-block")) present.dump_block(bno);   // Dump  block
     
   }
 

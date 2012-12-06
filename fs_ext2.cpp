@@ -1,3 +1,12 @@
+/***************************************************************/
+/*
+  Copyright (C) 2012  Kwon kideok (merlin00@pusan.ac.kr)
+  Ubiqutious Computing Laboratory in Pusan National University
+
+  2012.12.03  
+
+ */
+/***************************************************************/
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -6,22 +15,17 @@
 #include <iostream>
 #include <vector>
 
-#include "ext4analysis.hpp"
+#include "ext2.h"
+#include "fs_ext2.hpp"
 
 using namespace std;
 
-Ext4Analysis::Ext4Analysis()
-  : m_fd(0)
-{
-}
-
-Ext4Analysis::Ext4Analysis(const char* filename)
-  : m_fd(0)
+FsExt2::FsExt2(const char* filename)
 {
   open(filename);  
 }
 
-int Ext4Analysis::_read_super_block()
+int FsExt2::_read_super_block()
 {
   int ret = 0;
   if(lseek(m_fd, POS_OF_SUPERBLOCK, SEEK_SET) < 0) return -1;
@@ -32,7 +36,7 @@ int Ext4Analysis::_read_super_block()
   return ret;
 }
 
-int Ext4Analysis::_read_group_descs(const ext_super_block& super)
+int FsExt2::_read_group_descs(const ext_super_block& super)
 {
   _byte* buf = 0;
   int gd_pos = 0, gd_offset = 0;
@@ -64,8 +68,7 @@ int Ext4Analysis::_read_group_descs(const ext_super_block& super)
   return ret;   
 }
 
-
-bool Ext4Analysis::open(const char* filename)
+bool FsExt2::open(const char* filename)
 {
   if(m_fd != 0 || filename == 0) return false;
 
@@ -82,7 +85,7 @@ bool Ext4Analysis::open(const char* filename)
   return false;
 }
 
-void Ext4Analysis::close()
+void FsExt2::close()
 {
   if(m_fd != 0) {
     ::close(m_fd);
@@ -92,7 +95,7 @@ void Ext4Analysis::close()
 
 // Read inode bitmap from file or dev
 // by group dsecriptor and super block.
-int Ext4Analysis::get_inode_bitmap(_dword group_num,
+int FsExt2::get_inode_bitmap(_dword group_num,
 				   _byte* bitmap,
 				   size_t size)
 {
@@ -109,7 +112,7 @@ int Ext4Analysis::get_inode_bitmap(_dword group_num,
 
 // Read block bitmap from file or dev, 
 // by group dsecriptor and super block.
-int Ext4Analysis::get_block_bitmap(_dword group_num,
+int FsExt2::get_block_bitmap(_dword group_num,
 				  _byte* bitmap,
 				  size_t size)
 {
@@ -124,7 +127,7 @@ int Ext4Analysis::get_block_bitmap(_dword group_num,
 }
 
 // Return used bits in bitmap
-void Ext4Analysis::get_used_bits(const _byte* bitmap, size_t size, vector<_dword>& used_bits)
+void FsExt2::get_used_bits(const _byte* bitmap, size_t size, vector<_dword>& used_bits)
 {
   for(int i = 0 ; i < size ; i++)
     {
@@ -144,7 +147,7 @@ void Ext4Analysis::get_used_bits(const _byte* bitmap, size_t size, vector<_dword
     }
 }
 
-int Ext4Analysis::get_inodes(_dword group_num, vect_inodes& inodes)
+int FsExt2::get_inodes(_dword group_num, vect_inodes& inodes)
 {
   _byte *bitmap = 0, *buf_inodes = 0;
   _dword block_size, inode_size, buf_size, offset;
@@ -194,7 +197,7 @@ int Ext4Analysis::get_inodes(_dword group_num, vect_inodes& inodes)
   return used_bits.size();
 }
 
-i_node Ext4Analysis::get_inode(_dword ino)
+i_node FsExt2::get_inode(_dword ino)
 {
   // inode sequence starts from 1;
   // if(ino > 0) throw 0;
@@ -206,12 +209,12 @@ i_node Ext4Analysis::get_inode(_dword ino)
 
   lseek64(m_fd, offset, SEEK_SET);
   memset(&inode, 0, 128);
-  read(m_fd, &inode, 128/*inode_size*/);
+  read(m_fd, &inode, 128);
 
   return inode;  
 }
 
-int Ext4Analysis::get_block(_dword block_num, _byte* block, size_t size)
+int FsExt2::get_block(_dword block_num, _byte* block, size_t size)
 {
   _dword block_size = get_block_size();
   off64_t offset = (off64_t)block_size * block_num;
@@ -222,50 +225,23 @@ int Ext4Analysis::get_block(_dword block_num, _byte* block, size_t size)
   return read(m_fd, block, block_size);
 }
 
-int Ext4Analysis::extract_dir_from_block(const _byte* block, size_t size, vect_dir& dir)
+
+int FsExt2::get_dir_entries(const _byte* block, 
+			    size_t size,
+			    vector<ext2_dir_entry>& dir_entries)
 {
-  int offset = 0;
-  ext2_dir_entry cur_dir;
+  _dword offset = 0;
+  ext2_dir_entry dir;
 
-  memset(&cur_dir, 0, sizeof(cur_dir));
-  
-  while((offset + cur_dir.rec_len) < size)
-    {
-      memset(&cur_dir, 0, sizeof(cur_dir));
-      memcpy(&cur_dir, block + offset, HDR_SIZE_OF_DIR_ENTRY);
-      memcpy(cur_dir.name, block + offset + HDR_SIZE_OF_DIR_ENTRY, cur_dir.name_len);
-      dir.push_back(cur_dir);      
-    }
-
-  return dir.size();	 
-}
-
-ext4_extent_header Ext4Analysis::get_block_tree(const char* block, 
-						size_t size, 
-						std::vector<ext4_extent>& entries)
-{
-  size_t offset = 0;
-  size_t total;
-  int i;
-  ext4_extent_header hdr;
-  
-  memcpy(&hdr, block, sizeof(ext4_extent_header));
-  offset += sizeof(ext4_extent_header);
-
-  if(hdr.eh_magic != EXTENT_MAGIC) return hdr;
-  total = hdr.eh_entries * sizeof(ext4_extent) + sizeof(ext4_extent_header);
-  if(total > size) return hdr;
-
-  for(i = 0 ; i < hdr.eh_entries ; i++) {
-    ext4_extent entry;
-
-    memset(&entry, 0, sizeof(ext4_extent));
-    memcpy(&entry, block + offset, sizeof(ext4_extent));
-
-    entries.push_back(entry);
-
-    offset += sizeof(ext4_extent);    
+  while(offset < size) {
+    memset(&dir, 0, sizeof(ext2_dir_entry));
+    memcpy(&dir, block + offset, SIZE_OF_EXT2_DIR);
+    memcpy(dir.name, block + offset + SIZE_OF_EXT2_DIR, dir.name_len);
+    offset += dir.rec_len;
+    dir_entries.push_back(dir);    
   }
 
-  return hdr;
+  return dir_entries.size();	 
 }
+
+

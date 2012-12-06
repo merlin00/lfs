@@ -7,7 +7,7 @@ clear
 make clean
 make all
 # super block      
-# ./extx if=/dev/mapper/vg_kkd-lv_root -s
+# ./extx if=/dev/sdb2 -s
 
 # group descriptor 
 # ./extx if=/dev/mapper/vg_kkd-lv_root -gt
@@ -23,10 +23,10 @@ make all
 
 # inode 
 # Symbolic link 
-# ./extx if=/dev/mapper/vg_kkd-lv_root -inode ino=1719866 symbolic link example
+./extx if=/dev/sdb2 -inode ino=1981 dump=true
 
 # Regular file
-# ./extx if=/dev/mapper/vg_kkd-lv_root -inode ino=1719866
+# ./extx if=/dev/sdb2 -inode ino=2190
 
 # Directory 
-./extx if=/dev/mapper/vg_kkd-lv_root -inode ino=1714243
+# ./extx if=/dev/sdb2 -inode ino=1977 dump=true
