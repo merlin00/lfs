@@ -199,7 +199,6 @@ int main(int argc, char* argv[])
     }
     else if(!strcmp(cmd_opt.opt, "bno")) bno = atol(cmd_opt.param);
     else if(!strcmp(cmd_opt.opt, "dump")){
-      cout << " dump"  << endl;
       if(!strcmp(cmd_opt.param, "true")) present.set_dump();
       else present.clear_dump();
     }

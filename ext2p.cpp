@@ -160,6 +160,9 @@ void Ext2p::_print_inodes_in_group(const FsExt2::vect_inodes &inodes)
   // Print group descriptor
   size_t size = inodes.size();
 
+  printf("%3s  %4s   %4s   %10s   %4s   %10s   %10s \r\n",
+	 "no", "mode", "uid", "size", "gid", "link count", "blocks");
+
   for(size_t i = 0 ; i < size ; i++) {
     const FsExt2::pair_inode& inode = inodes[i];
     printf("%3u  %04X   %04X   %10u   %04X   %10u   %10u \r\n",
